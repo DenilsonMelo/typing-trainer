@@ -163,20 +163,25 @@ function Key({ label, charCode, isActive, isNext, isError, sub, w = 44 }) {
   const color = finger ? FINGER_COLORS[finger] : "#555";
   const isMod = !charCode;
 
-  let bg, textColor, border, shadow, scale;
-  if (isError) {
-    bg = "#ff6b8140"; textColor = "#ff6b81"; border = "2px solid #ff6b81";
-    shadow = "0 0 14px #ff6b8144"; scale = "scale(1.08)";
-  } else if (isNext) {
-    bg = color; textColor = "#13141c"; border = `2px solid ${color}`;
-    shadow = `0 0 20px ${color}77, 0 3px 10px #00000066`; scale = "scale(1.13)";
-  } else if (isActive && !isMod) {
-    bg = `${color}18`; textColor = `${color}cc`; border = `1px solid ${color}33`;
-    shadow = "0 1px 2px #00000022"; scale = "scale(1)";
-  } else {
-    bg = isMod ? "#1e2030" : "#232536"; textColor = isMod ? "#3b4261" : "#4a5070";
-    border = "1px solid #2a2d3d"; shadow = "0 1px 2px #00000018"; scale = "scale(1)";
-  }
+  const getStyle = () => {
+    if (isError) return {
+      bg: "#ff6b8140", textColor: "#ff6b81", border: "2px solid #ff6b81",
+      shadow: "0 0 14px #ff6b8144", scale: "scale(1.08)",
+    };
+    if (isNext) return {
+      bg: color, textColor: "#13141c", border: `2px solid ${color}`,
+      shadow: `0 0 20px ${color}77, 0 3px 10px #00000066`, scale: "scale(1.13)",
+    };
+    if (isActive && !isMod) return {
+      bg: `${color}18`, textColor: `${color}cc`, border: `1px solid ${color}33`,
+      shadow: "0 1px 2px #00000022", scale: "scale(1)",
+    };
+    return {
+      bg: isMod ? "#1e2030" : "#232536", textColor: isMod ? "#3b4261" : "#4a5070",
+      border: "1px solid #2a2d3d", shadow: "0 1px 2px #00000018", scale: "scale(1)",
+    };
+  };
+  const { bg, textColor, border, shadow, scale } = getStyle();
 
   return (
     <div style={{
