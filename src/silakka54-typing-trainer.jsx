@@ -85,13 +85,19 @@ function generateText(level) {
 const initialState = {
   text: "", pos: 0, states: [], correct: 0, wrong: 0,
   startTime: null, finished: false,
+  elapsed: 0, errorFlash: null, bestWpm: {},
 };
 
 function typingReducer(state, action) {
   switch (action.type) {
     case "INIT": {
       const t = action.text;
-      return { ...initialState, text: t, states: new Array(t.length).fill(null) };
+      return {
+        ...state,
+        text: t, pos: 0, states: new Array(t.length).fill(null),
+        correct: 0, wrong: 0, startTime: null, finished: false,
+        elapsed: 0, errorFlash: null,
+      };
     }
     case "TYPE_CHAR": {
       if (state.finished || state.pos >= state.text.length) return state;
@@ -101,16 +107,29 @@ function typingReducer(state, action) {
       newStates[state.pos] = isCorrect ? "correct" : "wrong";
       const newPos = state.pos + 1;
       const now = action.time;
+      const startTime = state.startTime || now;
+      const finished = newPos >= state.text.length;
+      const newCorrect = state.correct + (isCorrect ? 1 : 0);
+      let elapsed = state.elapsed;
+      let bestWpm = state.bestWpm;
+      if (finished) {
+        elapsed = Math.max(1, Math.floor((now - startTime) / 1000));
+        const fw = elapsed > 0 ? Math.round((newCorrect / 5) / (elapsed / 60)) : 0;
+        bestWpm = { ...state.bestWpm, [action.currentLevel]: Math.max(state.bestWpm[action.currentLevel] || 0, fw) };
+      }
       return {
         ...state,
         pos: newPos,
         states: newStates,
-        correct: state.correct + (isCorrect ? 1 : 0),
+        correct: newCorrect,
         wrong: state.wrong + (isCorrect ? 0 : 1),
-        startTime: state.startTime || now,
-        finished: newPos >= state.text.length,
+        startTime,
+        finished,
         lastCorrect: isCorrect,
         lastExpected: isCorrect ? null : expected,
+        errorFlash: isCorrect ? null : expected,
+        elapsed,
+        bestWpm,
       };
     }
     case "BACKSPACE": {
@@ -126,8 +145,14 @@ function typingReducer(state, action) {
         correct: state.correct - (prevWas === "correct" ? 1 : 0),
         wrong: state.wrong - (prevWas === "wrong" ? 1 : 0),
         lastExpected: null,
+        errorFlash: null,
       };
     }
+    case "TICK":
+      if (!state.startTime || state.finished) return state;
+      return { ...state, elapsed: Math.floor((action.now - state.startTime) / 1000) };
+    case "CLEAR_ERROR_FLASH":
+      return { ...state, errorFlash: null };
     default:
       return state;
   }
@@ -204,11 +229,7 @@ function KeyboardHalf({ rows, thumbs, activeChars, nextChar, errorChar, side }) 
 export default function TypingTrainer() {
   const [currentLevel, setCurrentLevel] = useState(0);
   const [state, dispatch] = useReducer(typingReducer, initialState);
-  const [elapsed, setElapsed] = useState(0);
-  const [errorFlash, setErrorFlash] = useState(null);
   const [showTips, setShowTips] = useState(false);
-  const [bestWpm, setBestWpm] = useState({});
-  const [, forceUpdate] = useState(0);
   const timerRef = useRef(null);
   const textRef = useRef(null);
   const containerRef = useRef(null);
@@ -216,10 +237,8 @@ export default function TypingTrainer() {
   const level = LEVELS[currentLevel];
 
   const initLevel = useCallback(() => {
-    dispatch({ type: "INIT", text: generateText(level) });
-    setElapsed(0);
-    setErrorFlash(null);
     if (timerRef.current) clearInterval(timerRef.current);
+    dispatch({ type: "INIT", text: generateText(level) });
   }, [level]);
 
   useEffect(() => {
@@ -230,25 +249,13 @@ export default function TypingTrainer() {
   // Timer
   useEffect(() => {
     if (state.startTime && !state.finished) {
-      timerRef.current = setInterval(() => setElapsed(Math.floor((Date.now() - state.startTime) / 1000)), 250);
+      timerRef.current = setInterval(() => dispatch({ type: "TICK", now: Date.now() }), 250);
       return () => clearInterval(timerRef.current);
     }
     if (state.finished && timerRef.current) {
       clearInterval(timerRef.current);
-      // Calculate final elapsed
-      const fe = Math.max(1, Math.floor((Date.now() - state.startTime) / 1000));
-      setElapsed(fe);
     }
   }, [state.startTime, state.finished]);
-
-  // Save best WPM on finish
-  useEffect(() => {
-    if (state.finished && state.startTime) {
-      const fe = Math.max(1, Math.floor((Date.now() - state.startTime) / 1000));
-      const fw = fe > 0 ? Math.round((state.correct / 5) / (fe / 60)) : 0;
-      setBestWpm(p => ({ ...p, [currentLevel]: Math.max(p[currentLevel] || 0, fw) }));
-    }
-  }, [state.finished]);
 
   // Auto-scroll
   useEffect(() => {
@@ -283,33 +290,28 @@ export default function TypingTrainer() {
 
       if (e.key === "Backspace") {
         dispatch({ type: "BACKSPACE" });
-        setErrorFlash(null);
         return;
       }
 
       // Only single characters
       if (e.key.length !== 1) return;
 
-      dispatch({ type: "TYPE_CHAR", char: e.key, time: Date.now() });
+      dispatch({ type: "TYPE_CHAR", char: e.key, time: Date.now(), currentLevel });
     };
 
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [state.finished, initLevel]);
+  }, [state.finished, initLevel, currentLevel]);
 
-  // Error flash effect
+  // Error flash — clear after 300ms
   useEffect(() => {
-    if (state.lastExpected) {
-      setErrorFlash(state.lastExpected);
-      const t = setTimeout(() => setErrorFlash(null), 300);
-      return () => clearTimeout(t);
-    } else {
-      setErrorFlash(null);
-    }
-  }, [state.wrong, state.lastExpected]);
+    if (!state.errorFlash) return;
+    const t = setTimeout(() => dispatch({ type: "CLEAR_ERROR_FLASH" }), 300);
+    return () => clearTimeout(t);
+  }, [state.errorFlash]);
 
   const totalKeys = state.correct + state.wrong;
-  const wpm = elapsed > 0 ? Math.round((state.correct / 5) / (elapsed / 60)) : 0;
+  const wpm = state.elapsed > 0 ? Math.round((state.correct / 5) / (state.elapsed / 60)) : 0;
   const accuracy = totalKeys > 0 ? Math.round((state.correct / totalKeys) * 100) : 100;
   const nextChar = state.text[state.pos] || "";
   const activeChars = new Set(state.text.split(""));
@@ -357,7 +359,7 @@ export default function TypingTrainer() {
               transition: "all 0.15s", whiteSpace: "nowrap",
             }}>
             {i + 1}. {l.name}
-            {bestWpm[i] != null && <span style={{ opacity: 0.4, marginLeft: "3px" }}>{bestWpm[i]}w</span>}
+            {state.bestWpm[i] != null && <span style={{ opacity: 0.4, marginLeft: "3px" }}>{state.bestWpm[i]}w</span>}
           </button>
         ))}
       </div>
@@ -369,7 +371,7 @@ export default function TypingTrainer() {
         {[
           [wpm, "WPM", "#74c0fc"],
           [`${accuracy}%`, "Precisão", accuracy >= 95 ? "#69db7c" : accuracy >= 80 ? "#ffa94d" : "#ff6b81"],
-          [`${elapsed}s`, "Tempo", "#b197fc"],
+          [`${state.elapsed}s`, "Tempo", "#b197fc"],
           [state.correct, "Certos", "#69db7c"],
           [state.wrong, "Erros", "#ff6b81"],
         ].map(([v, l, c]) => (
@@ -444,9 +446,9 @@ export default function TypingTrainer() {
         margin: "0 auto", maxWidth: "640px", transform: "scale(0.88)", transformOrigin: "top center",
       }}>
         <KeyboardHalf rows={KEYBOARD_LEFT} thumbs={THUMBS_LEFT}
-          activeChars={activeChars} nextChar={nextChar} errorChar={errorFlash} side="left" />
+          activeChars={activeChars} nextChar={nextChar} errorChar={state.errorFlash} side="left" />
         <KeyboardHalf rows={KEYBOARD_RIGHT} thumbs={THUMBS_RIGHT}
-          activeChars={activeChars} nextChar={nextChar} errorChar={errorFlash} side="right" />
+          activeChars={activeChars} nextChar={nextChar} errorChar={state.errorFlash} side="right" />
       </div>
 
       {/* Finger legend */}
