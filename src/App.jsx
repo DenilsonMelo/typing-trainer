@@ -1,4 +1,4 @@
-import TypingTrainer from "./silakka54-typing-trainer"
+import TypingTrainer from "./components/silakka54-typing-trainer"
 
 function App() {
 
