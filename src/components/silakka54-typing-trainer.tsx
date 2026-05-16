@@ -6,23 +6,50 @@ import { useState, useEffect, useCallback, useRef, useReducer } from "react";
   RIGHT: 6 7 8 9 0 BKSP | Y U I O P \ | H J K L ; ' | N M , . / SHFT | ENT(L3) BKSP(L4) RALT
 */
 
-const KEYBOARD_LEFT = [
+type KeyDef = { k: string; c: string; sub?: string };
+type CellState = "correct" | "wrong" | null;
+
+type State = {
+  text: string;
+  pos: number;
+  states: CellState[];
+  correct: number;
+  wrong: number;
+  startTime: number | null;
+  finished: boolean;
+  elapsed: number;
+  errorFlash: string | null;
+  bestWpm: Record<number, number>;
+  lastCorrect?: boolean;
+  lastExpected?: string | null;
+};
+
+type Action =
+  | { type: "INIT"; text: string }
+  | { type: "TYPE_CHAR"; char: string; time: number; currentLevel: number }
+  | { type: "BACKSPACE" }
+  | { type: "TICK"; now: number }
+  | { type: "CLEAR_ERROR_FLASH" };
+
+type Level = { id: number; name: string; desc: string; words: string[] };
+
+const KEYBOARD_LEFT: KeyDef[][] = [
   [{ k: "Esc", c: "" }, { k: "1", c: "1" }, { k: "2", c: "2" }, { k: "3", c: "3" }, { k: "4", c: "4" }, { k: "5", c: "5" }],
   [{ k: "Tab", c: "" }, { k: "Q", c: "q" }, { k: "W", c: "w" }, { k: "E", c: "e" }, { k: "R", c: "r" }, { k: "T", c: "t" }],
   [{ k: "Ctrl", c: "" }, { k: "A", c: "a" }, { k: "S", c: "s" }, { k: "D", c: "d" }, { k: "F", c: "f" }, { k: "G", c: "g" }],
   [{ k: "Shift", c: "" }, { k: "Z", c: "z" }, { k: "X", c: "x" }, { k: "C", c: "c" }, { k: "V", c: "v" }, { k: "B", c: "b" }],
 ];
-const KEYBOARD_RIGHT = [
+const KEYBOARD_RIGHT: KeyDef[][] = [
   [{ k: "6", c: "6" }, { k: "7", c: "7" }, { k: "8", c: "8" }, { k: "9", c: "9" }, { k: "0", c: "0" }, { k: "Bksp", c: "" }],
   [{ k: "Y", c: "y" }, { k: "U", c: "u" }, { k: "I", c: "i" }, { k: "O", c: "o" }, { k: "P", c: "p" }, { k: "\\", c: "\\" }],
   [{ k: "H", c: "h" }, { k: "J", c: "j" }, { k: "K", c: "k" }, { k: "L", c: "l" }, { k: ";", c: ";" }, { k: "'", c: "'" }],
   [{ k: "N", c: "n" }, { k: "M", c: "m" }, { k: ",", c: "," }, { k: ".", c: "." }, { k: "/", c: "/" }, { k: "Shift", c: "" }],
 ];
-const THUMBS_LEFT = [{ k: "GUI", c: "" }, { k: "SPC", c: " ", sub: "L2" }, { k: "Tab", c: "", sub: "L1" }];
-const THUMBS_RIGHT = [{ k: "Ent", c: "", sub: "L3" }, { k: "Bksp", c: "", sub: "L4" }, { k: "RAlt", c: "" }];
+const THUMBS_LEFT: KeyDef[] = [{ k: "GUI", c: "" }, { k: "SPC", c: " ", sub: "L2" }, { k: "Tab", c: "", sub: "L1" }];
+const THUMBS_RIGHT: KeyDef[] = [{ k: "Ent", c: "", sub: "L3" }, { k: "Bksp", c: "", sub: "L4" }, { k: "RAlt", c: "" }];
 const COL_OFFSETS = [0.5, 0.25, 0, 0.125, 0.25, 0.35];
 
-const FINGER_MAP = {
+const FINGER_MAP: Record<string, string> = {
   "1": "pinky-l", "q": "pinky-l", "a": "pinky-l", "z": "pinky-l",
   "2": "ring-l", "w": "ring-l", "s": "ring-l", "x": "ring-l",
   "3": "mid-l", "e": "mid-l", "d": "mid-l", "c": "mid-l",
@@ -35,30 +62,63 @@ const FINGER_MAP = {
   "0": "pinky-r", "p": "pinky-r", ";": "pinky-r", "/": "pinky-r",
   "\\": "pinky-r", "'": "pinky-r", " ": "thumb-l",
 };
-const FINGER_COLORS = {
+const FINGER_COLORS: Record<string, string> = {
   "pinky-l": "#ff6b81", "ring-l": "#ffa94d", "mid-l": "#69db7c",
   "index-l": "#74c0fc", "index-r": "#74c0fc", "mid-r": "#69db7c",
   "ring-r": "#ffa94d", "pinky-r": "#ff6b81", "thumb-l": "#b197fc", "thumb-r": "#b197fc",
 };
 
-const LEVELS = [
+const LEVELS: Level[] = [
   { id: 1, name: "Home Esquerda", desc: "ASDF G — mão esquerda na posição base",
-    words: ["fada", "saga", "gaga", "das", "safa", "sad", "fads", "gas", "dag", "safas", "dada"] },
+    words: [
+      "fada", "saga", "gaga", "das", "safa", "sad", "fads", "gas", "dag", "safas", "dada",
+      "asa", "asas", "daga", "fagas", "sagas", "fadas", "dadas", "fag", "gad", "gaff", "gags",
+      "asdf", "fasd", "gads", "sags", "dagas", "asaga", "fagada",
+    ] },
   { id: 2, name: "Home Direita", desc: "H JKL — mão direita na posição base",
-    words: ["hall", "hulk", "hill", "kill", "hall", "skill", "shall", "jail", "lash", "jhl", "lhk"] },
+    words: [
+      "hall", "hulk", "hill", "kill", "skill", "shall", "jail", "lash", "jhl", "lhk",
+      "hash", "lush", "hush", "kilt", "lilt", "kiln", "junk", "khan", "slash", "stash",
+      "lulls", "hulks", "halks", "halls", "jolly", "lilac", "khaki", "hijack",
+    ] },
   { id: 3, name: "Home Completa", desc: "Ambas as mãos juntas na home row",
-    words: ["flash", "glass", "flags", "salad", "slash", "flask", "glad", "half", "falls", "halls", "skill", "shall"] },
+    words: [
+      "flash", "glass", "flags", "salad", "slash", "flask", "glad", "half", "falls", "halls", "skill", "shall",
+      "hash", "dash", "gash", "lash", "sash", "alas", "gala", "lads", "lags", "sags", "gags",
+      "dahls", "halal", "kasha", "askl", "ghadj",
+    ] },
   { id: 4, name: "Row Superior", desc: "QWERT YUIOP — alcance para cima",
-    words: ["write", "power", "quiet", "route", "tower", "quote", "equip", "query", "outer", "optic", "wiper", "rivet"] },
+    words: [
+      "write", "power", "quiet", "route", "tower", "quote", "equip", "query", "outer", "optic", "wiper", "rivet",
+      "trip", "type", "tour", "twit", "yore", "wire", "writ", "writer", "tipper", "ripper",
+      "proper", "prior", "potter", "yuppie", "torque", "report", "poetry",
+    ] },
   { id: 5, name: "Row Inferior", desc: "ZXCVB NM — alcance para baixo",
-    words: ["cabin", "venom", "camel", "bunch", "bench", "bacon", "climb", "blank", "crumb", "nerve", "comic", "civic"] },
+    words: [
+      "cabin", "venom", "camel", "bunch", "bench", "bacon", "climb", "blank", "crumb", "nerve", "comic", "civic",
+      "comb", "bomb", "lamb", "numb", "envy", "movie", "vacant", "mocha", "vivid", "buzz",
+      "zinc", "exam", "mixer", "canvas", "banana", "vacuum", "nomad",
+    ] },
   { id: 6, name: "Centro Split", desc: "TG + YH — onde o teclado se divide",
-    words: ["tight", "ghost", "youth", "thigh", "girth", "byte", "eight", "gutsy", "bight", "gust", "typo", "buggy"] },
+    words: [
+      "tight", "ghost", "youth", "thigh", "girth", "byte", "eight", "gutsy", "bight", "gust", "typo", "buggy",
+      "tough", "yacht", "highlight", "weighty", "twitchy", "haughty", "rights", "tights",
+      "myth", "myths", "lengthy", "yogurt", "thirsty", "naughty", "hyphen",
+    ] },
   { id: 7, name: "Números", desc: "1234567890 — row de números",
-    words: ["123", "456", "789", "100", "2024", "365", "500", "1000", "42", "99", "007", "314", "256"] },
+    words: [
+      "123", "456", "789", "100", "2024", "365", "500", "1000", "42", "99", "007", "314", "256",
+      "512", "768", "404", "200", "1024", "2048", "4096", "2026", "1969", "1984",
+      "1234", "5678", "9012", "8675309", "8080", "3141",
+    ] },
   { id: 8, name: "Palavras PT-BR", desc: "Vocabulário em português",
-    words: ["teclado", "dividido", "digitar", "tecla", "postura", "coluna", "dedo", "polegar",
-      "camada", "layout", "firme", "rapido", "treino", "foco", "ritmo", "fluxo", "ajuste", "pulso", "forma", "base"] },
+    words: [
+      "teclado", "dividido", "digitar", "tecla", "postura", "coluna", "dedo", "polegar",
+      "camada", "layout", "firme", "rapido", "treino", "foco", "ritmo", "fluxo", "ajuste", "pulso", "forma", "base",
+      "mecanico", "switch", "linear", "tatil", "stagger", "ergonomico", "split", "metade",
+      "ombro", "punho", "olhar", "altura", "respirar", "constante", "preciso", "atalho",
+      "controle", "espaco", "leitura", "treinar",
+    ] },
   { id: 9, name: "Frases", desc: "Frases completas para velocidade",
     words: [
       "o teclado split melhora a postura",
@@ -71,10 +131,20 @@ const LEVELS = [
       "layers substituem teclas que faltam",
       "o split separa as maos na largura do ombro",
       "column stagger segue o formato natural",
+      "ritmo constante vale mais que velocidade pura",
+      "digitar sem olhar e o primeiro grande passo",
+      "ajuste o tenting ate as palmas relaxarem",
+      "mantenha os punhos retos e os ombros baixos",
+      "erros consistentes pedem pratica direcionada",
+      "o melhor layout e o que voce ajustou pra voce",
+      "comece devagar e ganhe velocidade com o tempo",
+      "respire fundo entre as rodadas de treino",
+      "a home row e seu ponto de partida sempre",
+      "pequenos ganhos diarios viram grandes saltos",
     ] },
 ];
 
-function generateText(level) {
+function generateText(level: Level): string {
   const shuffled = [...level.words].sort(() => Math.random() - 0.5);
   if (level.id === 9) return shuffled.slice(0, 3).join(". ");
   if (level.id === 7) return shuffled.slice(0, 8).join(" ");
@@ -82,13 +152,13 @@ function generateText(level) {
 }
 
 // ── Reducer for typing state — avoids stale closures ──
-const initialState = {
+const initialState: State = {
   text: "", pos: 0, states: [], correct: 0, wrong: 0,
   startTime: null, finished: false,
   elapsed: 0, errorFlash: null, bestWpm: {},
 };
 
-function typingReducer(state, action) {
+function typingReducer(state: State, action: Action): State {
   switch (action.type) {
     case "INIT": {
       const t = action.text;
@@ -158,7 +228,17 @@ function typingReducer(state, action) {
   }
 }
 
-function Key({ label, charCode, isActive, isNext, isError, sub, w = 44 }) {
+type KeyProps = {
+  label: string;
+  charCode: string;
+  isActive: boolean;
+  isNext: boolean;
+  isError: boolean;
+  sub?: string;
+  w?: number;
+};
+
+function Key({ label, charCode, isActive, isNext, isError, sub, w = 44 }: KeyProps) {
   const finger = FINGER_MAP[charCode];
   const color = finger ? FINGER_COLORS[finger] : "#555";
   const isMod = !charCode;
@@ -199,7 +279,16 @@ function Key({ label, charCode, isActive, isNext, isError, sub, w = 44 }) {
   );
 }
 
-function KeyboardHalf({ rows, thumbs, activeChars, nextChar, errorChar, side }) {
+type KeyboardHalfProps = {
+  rows: KeyDef[][];
+  thumbs: KeyDef[];
+  activeChars: Set<string>;
+  nextChar: string;
+  errorChar: string | null;
+  side: "left" | "right";
+};
+
+function KeyboardHalf({ rows, thumbs, activeChars, nextChar, errorChar, side }: KeyboardHalfProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
       {rows.map((row, ri) => (
@@ -221,9 +310,9 @@ function KeyboardHalf({ rows, thumbs, activeChars, nextChar, errorChar, side }) 
       }}>
         {thumbs.map((key, i) => (
           <Key key={i} label={key.k} charCode={key.c || ""}
-            isActive={key.c && activeChars.has(key.c)}
-            isNext={key.c && nextChar === key.c}
-            isError={key.c && errorChar === key.c}
+            isActive={!!key.c && activeChars.has(key.c)}
+            isNext={!!key.c && nextChar === key.c}
+            isError={!!key.c && errorChar === key.c}
             sub={key.sub} w={key.c === " " ? 56 : 44} />
         ))}
       </div>
@@ -235,9 +324,9 @@ export default function TypingTrainer() {
   const [currentLevel, setCurrentLevel] = useState(0);
   const [state, dispatch] = useReducer(typingReducer, initialState);
   const [showTips, setShowTips] = useState(false);
-  const timerRef = useRef(null);
-  const textRef = useRef(null);
-  const containerRef = useRef(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const textRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const level = LEVELS[currentLevel];
 
@@ -254,8 +343,9 @@ export default function TypingTrainer() {
   // Timer
   useEffect(() => {
     if (state.startTime && !state.finished) {
-      timerRef.current = setInterval(() => dispatch({ type: "TICK", now: Date.now() }), 250);
-      return () => clearInterval(timerRef.current);
+      const id = setInterval(() => dispatch({ type: "TICK", now: Date.now() }), 250);
+      timerRef.current = id;
+      return () => clearInterval(id);
     }
     if (state.finished && timerRef.current) {
       clearInterval(timerRef.current);
@@ -272,7 +362,7 @@ export default function TypingTrainer() {
 
   // ── KEY HANDLER on document level — no hidden input needed ──
   useEffect(() => {
-    const handler = (e) => {
+    const handler = (e: KeyboardEvent) => {
       if (state.finished) return;
 
       // Escape to restart
@@ -373,13 +463,13 @@ export default function TypingTrainer() {
 
       {/* Stats */}
       <div style={{ display: "flex", justifyContent: "center", gap: "28px", marginBottom: "12px" }}>
-        {[
+        {([
           [wpm, "WPM", "#74c0fc"],
           [`${accuracy}%`, "Precisão", accuracy >= 95 ? "#69db7c" : accuracy >= 80 ? "#ffa94d" : "#ff6b81"],
           [`${state.elapsed}s`, "Tempo", "#b197fc"],
           [state.correct, "Certos", "#69db7c"],
           [state.wrong, "Erros", "#ff6b81"],
-        ].map(([v, l, c]) => (
+        ] as Array<[string | number, string, string]>).map(([v, l, c]) => (
           <div key={l} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px" }}>
             <span style={{ fontSize: "26px", fontWeight: 800, lineHeight: 1, color: c, fontFamily: "'JetBrains Mono', monospace" }}>{v}</span>
             <span style={{ fontSize: "8px", textTransform: "uppercase", letterSpacing: "1.5px", opacity: 0.35, fontWeight: 700 }}>{l}</span>
@@ -390,7 +480,7 @@ export default function TypingTrainer() {
       {/* Text area */}
       <div ref={textRef} style={{
         background: "#1a1b26", borderRadius: "12px", padding: "18px 22px",
-        margin: "0 auto 14px", maxWidth: "660px", minHeight: "60px", maxHeight: "110px",
+        margin: "0 auto 14px", maxWidth: "660px", minHeight: "160px", maxHeight: "110px",
         overflowY: "auto", fontSize: "19px",
         fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
         lineHeight: 1.85, letterSpacing: "0.3px", border: "1px solid #1e2030", position: "relative",
