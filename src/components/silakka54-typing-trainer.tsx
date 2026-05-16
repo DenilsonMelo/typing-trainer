@@ -113,6 +113,23 @@ export default function TypingTrainer() {
   const nextChar = state.text[state.pos] || "";
   const activeChars = new Set(state.text.split(""));
 
+  // For non-L0 layers, locate the hold key in L0's thumbs (via sub = layer name)
+  // and overlay it on the current layer's thumb cluster so it can be highlighted.
+  const layerData = LAYERS[currentLayer];
+  const l0 = LAYERS[0];
+  let holdLeftIdx = -1;
+  let holdRightIdx = -1;
+  if (currentLayer > 0) {
+    holdLeftIdx = l0.thumbsLeft.findIndex(t => t.sub === layerData.name);
+    if (holdLeftIdx < 0) holdRightIdx = l0.thumbsRight.findIndex(t => t.sub === layerData.name);
+  }
+  const thumbsLeft = holdLeftIdx >= 0
+    ? layerData.thumbsLeft.map((t, i) => (i === holdLeftIdx ? l0.thumbsLeft[i] : t))
+    : layerData.thumbsLeft;
+  const thumbsRight = holdRightIdx >= 0
+    ? layerData.thumbsRight.map((t, i) => (i === holdRightIdx ? l0.thumbsRight[i] : t))
+    : layerData.thumbsRight;
+
   return (
     <div ref={containerRef} style={{
       minHeight: "100vh", background: "#13141c", color: "#a9b1d6",
@@ -256,10 +273,12 @@ export default function TypingTrainer() {
         display: "flex", justifyContent: "center", gap: "36px",
         margin: "0 auto", maxWidth: "640px", transform: "scale(0.88)", transformOrigin: "top center",
       }}>
-        <KeyboardHalf rows={LAYERS[currentLayer].left} thumbs={LAYERS[currentLayer].thumbsLeft}
-          activeChars={activeChars} nextChar={nextChar} errorChar={state.errorFlash} side="left" />
-        <KeyboardHalf rows={LAYERS[currentLayer].right} thumbs={LAYERS[currentLayer].thumbsRight}
-          activeChars={activeChars} nextChar={nextChar} errorChar={state.errorFlash} side="right" />
+        <KeyboardHalf rows={layerData.left} thumbs={thumbsLeft}
+          activeChars={activeChars} nextChar={nextChar} errorChar={state.errorFlash} side="left"
+          holdKeyThumbIndex={holdLeftIdx} />
+        <KeyboardHalf rows={layerData.right} thumbs={thumbsRight}
+          activeChars={activeChars} nextChar={nextChar} errorChar={state.errorFlash} side="right"
+          holdKeyThumbIndex={holdRightIdx} />
       </div>
 
       {/* Finger legend */}

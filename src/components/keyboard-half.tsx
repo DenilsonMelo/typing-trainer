@@ -9,9 +9,10 @@ type KeyboardHalfProps = {
   nextChar: string;
   errorChar: string | null;
   side: "left" | "right";
+  holdKeyThumbIndex?: number;
 };
 
-export function KeyboardHalf({ rows, thumbs, activeChars, nextChar, errorChar, side }: KeyboardHalfProps) {
+export function KeyboardHalf({ rows, thumbs, activeChars, nextChar, errorChar, side, holdKeyThumbIndex = -1 }: KeyboardHalfProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
       {rows.map((row, ri) => (
@@ -36,6 +37,7 @@ export function KeyboardHalf({ rows, thumbs, activeChars, nextChar, errorChar, s
             isActive={!!key.c && activeChars.has(key.c)}
             isNext={!!key.c && nextChar === key.c}
             isError={!!key.c && errorChar === key.c}
+            isHoldKey={i === holdKeyThumbIndex}
             sub={key.sub} w={key.c === " " ? 56 : 44} />
         ))}
       </div>

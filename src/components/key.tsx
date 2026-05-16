@@ -6,11 +6,12 @@ type KeyProps = {
   isActive: boolean;
   isNext: boolean;
   isError: boolean;
+  isHoldKey?: boolean;
   sub?: string;
   w?: number;
 };
 
-export function Key({ label, charCode, isActive, isNext, isError, sub, w = 44 }: KeyProps) {
+export function Key({ label, charCode, isActive, isNext, isError, isHoldKey, sub, w = 44 }: KeyProps) {
   const finger = FINGER_MAP[charCode];
   const color = finger ? FINGER_COLORS[finger] : "#555";
   const isMod = !charCode;
@@ -23,6 +24,10 @@ export function Key({ label, charCode, isActive, isNext, isError, sub, w = 44 }:
     if (isNext) return {
       bg: color, textColor: "#13141c", border: `2px solid ${color}`,
       shadow: `0 0 20px ${color}77, 0 3px 10px #00000066`, scale: "scale(1.13)",
+    };
+    if (isHoldKey) return {
+      bg: "#b197fc22", textColor: "#b197fc", border: "2px solid #b197fc",
+      shadow: "0 0 16px #b197fc88, 0 0 4px #b197fcaa inset", scale: "scale(1.06)",
     };
     if (isActive && !isMod) return {
       bg: `${color}18`, textColor: `${color}cc`, border: `1px solid ${color}33`,
