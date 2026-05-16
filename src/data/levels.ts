@@ -1,0 +1,84 @@
+import type { Level } from "../types";
+
+export const LEVELS: Level[] = [
+  { id: 1, name: "Home Esquerda", desc: "ASDF G — mão esquerda na posição base",
+    words: [
+      "fada", "saga", "gaga", "das", "safa", "sad", "fads", "gas", "dag", "safas", "dada",
+      "asa", "asas", "daga", "fagas", "sagas", "fadas", "dadas", "fag", "gad", "gaff", "gags",
+      "asdf", "fasd", "gads", "sags", "dagas", "asaga", "fagada",
+    ] },
+  { id: 2, name: "Home Direita", desc: "H JKL — mão direita na posição base",
+    words: [
+      "hall", "hulk", "hill", "kill", "skill", "shall", "jail", "lash", "jhl", "lhk",
+      "hash", "lush", "hush", "kilt", "lilt", "kiln", "junk", "khan", "slash", "stash",
+      "lulls", "hulks", "halks", "halls", "jolly", "lilac", "khaki", "hijack",
+    ] },
+  { id: 3, name: "Home Completa", desc: "Ambas as mãos juntas na home row",
+    words: [
+      "flash", "glass", "flags", "salad", "slash", "flask", "glad", "half", "falls", "halls", "skill", "shall",
+      "hash", "dash", "gash", "lash", "sash", "alas", "gala", "lads", "lags", "sags", "gags",
+      "dahls", "halal", "kasha", "askl", "ghadj",
+    ] },
+  { id: 4, name: "Row Superior", desc: "QWERT YUIOP — alcance para cima",
+    words: [
+      "write", "power", "quiet", "route", "tower", "quote", "equip", "query", "outer", "optic", "wiper", "rivet",
+      "trip", "type", "tour", "twit", "yore", "wire", "writ", "writer", "tipper", "ripper",
+      "proper", "prior", "potter", "yuppie", "torque", "report", "poetry",
+    ] },
+  { id: 5, name: "Row Inferior", desc: "ZXCVB NM — alcance para baixo",
+    words: [
+      "cabin", "venom", "camel", "bunch", "bench", "bacon", "climb", "blank", "crumb", "nerve", "comic", "civic",
+      "comb", "bomb", "lamb", "numb", "envy", "movie", "vacant", "mocha", "vivid", "buzz",
+      "zinc", "exam", "mixer", "canvas", "banana", "vacuum", "nomad",
+    ] },
+  { id: 6, name: "Centro Split", desc: "TG + YH — onde o teclado se divide",
+    words: [
+      "tight", "ghost", "youth", "thigh", "girth", "byte", "eight", "gutsy", "bight", "gust", "typo", "buggy",
+      "tough", "yacht", "highlight", "weighty", "twitchy", "haughty", "rights", "tights",
+      "myth", "myths", "lengthy", "yogurt", "thirsty", "naughty", "hyphen",
+    ] },
+  { id: 7, name: "Números", desc: "1234567890 — row de números",
+    words: [
+      "123", "456", "789", "100", "2024", "365", "500", "1000", "42", "99", "007", "314", "256",
+      "512", "768", "404", "200", "1024", "2048", "4096", "2026", "1969", "1984",
+      "1234", "5678", "9012", "8675309", "8080", "3141",
+    ] },
+  { id: 8, name: "Palavras PT-BR", desc: "Vocabulário em português",
+    words: [
+      "teclado", "dividido", "digitar", "tecla", "postura", "coluna", "dedo", "polegar",
+      "camada", "layout", "firme", "rapido", "treino", "foco", "ritmo", "fluxo", "ajuste", "pulso", "forma", "base",
+      "mecanico", "switch", "linear", "tatil", "stagger", "ergonomico", "split", "metade",
+      "ombro", "punho", "olhar", "altura", "respirar", "constante", "preciso", "atalho",
+      "controle", "espaco", "leitura", "treinar",
+    ] },
+  { id: 9, name: "Frases", desc: "Frases completas para velocidade",
+    words: [
+      "o teclado split melhora a postura",
+      "cada dedo tem sua coluna no silakka",
+      "pratique todos os dias por dez minutos",
+      "o polegar controla espaco e camadas",
+      "nao olhe para baixo confie nos dedos",
+      "a precisao vem antes da velocidade",
+      "use o vial para remapear as teclas",
+      "layers substituem teclas que faltam",
+      "o split separa as maos na largura do ombro",
+      "column stagger segue o formato natural",
+      "ritmo constante vale mais que velocidade pura",
+      "digitar sem olhar e o primeiro grande passo",
+      "ajuste o tenting ate as palmas relaxarem",
+      "mantenha os punhos retos e os ombros baixos",
+      "erros consistentes pedem pratica direcionada",
+      "o melhor layout e o que voce ajustou pra voce",
+      "comece devagar e ganhe velocidade com o tempo",
+      "respire fundo entre as rodadas de treino",
+      "a home row e seu ponto de partida sempre",
+      "pequenos ganhos diarios viram grandes saltos",
+    ] },
+];
+
+export function generateText(level: Level): string {
+  const shuffled = [...level.words].sort(() => Math.random() - 0.5);
+  if (level.id === 9) return shuffled.slice(0, 3).join(". ");
+  if (level.id === 7) return shuffled.slice(0, 8).join(" ");
+  return shuffled.slice(0, 8 + Math.floor(Math.random() * 5)).join(" ");
+}
