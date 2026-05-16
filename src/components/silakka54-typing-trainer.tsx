@@ -48,7 +48,15 @@ export default function TypingTrainer() {
   // ── KEY HANDLER on document level — no hidden input needed ──
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (state.finished) return;
+      if (state.finished) {
+        if (e.key === "Escape") { e.preventDefault(); initLevel(); return; }
+        if (e.key === "Enter" && currentLevel < LEVELS.length - 1) {
+          e.preventDefault();
+          setCurrentLevel(p => p + 1);
+          return;
+        }
+        return;
+      }
 
       // Escape to restart
       if (e.key === "Escape") { e.preventDefault(); initLevel(); return; }
@@ -177,9 +185,9 @@ export default function TypingTrainer() {
                 Repetir (Esc)
               </button>
               {currentLevel < LEVELS.length - 1 && (
-                <button onClick={() => setCurrentLevel(p => p + 1)}
+                <button autoFocus onClick={() => setCurrentLevel(p => p + 1)}
                   style={{ padding: "6px 16px", borderRadius: "7px", border: "none", background: "#7aa2f7", color: "#13141c", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}>
-                  Próximo →
+                  Próximo (Enter) →
                 </button>
               )}
             </div>

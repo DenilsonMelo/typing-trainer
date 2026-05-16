@@ -80,5 +80,5 @@ export function generateText(level: Level): string {
   const shuffled = [...level.words].sort(() => Math.random() - 0.5);
   if (level.id === 9) return shuffled.slice(0, 3).join(". ");
   if (level.id === 7) return shuffled.slice(0, 8).join(" ");
-  return shuffled.slice(0, 8 + Math.floor(Math.random() * 5)).join(" ");
+  return shuffled.slice(0, 12 + Math.floor(Math.random() * 5)).join(" ");
 }
