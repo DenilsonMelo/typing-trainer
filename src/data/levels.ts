@@ -74,6 +74,24 @@ export const LEVELS: Level[] = [
       "a home row e seu ponto de partida sempre",
       "pequenos ganhos diarios viram grandes saltos",
     ] },
+  { id: 10, name: "Símbolos (L1)", desc: "! @ # $ % & * ( ) { } [ ] etc.",
+    layer: 1,
+    words: [
+      "!@#$%", "^&*()", "{a, b}", "[1, 2, 3]", "(x + y)", "100%", "#tag", "<3",
+      "user@email", "$100", "a && b", "x || y", "if (x > 0)", "{key: val}",
+      "arr[0]", "obj.key", "fn(a, b)", "x = 5;", "y += 2", "*** ok ***",
+      "10 / 2", "x++", "1 + 2 = 3", "<head>", "</body>", "p > q",
+      "!important", "$user", "@route", "#anchor", "&amp;", "|&|",
+    ] },
+  { id: 11, name: "Numpad (L3)", desc: "Operações numéricas e pad direito",
+    layer: 3,
+    words: [
+      "1+2", "10-5", "3*4", "20/4", "100+50", "9*9", "256/8",
+      "1024/2", "42+8", "7*7", "100-25", "12+12", "15/3", "8*8",
+      "144/12", "33-11", "1000/4", "5+5+5", "2.5*4", "0.1+0.9",
+      "3.14", "1.5+2.5", "1,2,3", "10,20,30", "100,200,300",
+      "365", "1024", "2048", "9999", "1234+5678",
+    ] },
 ];
 
 export function generateText(level: Level): string {

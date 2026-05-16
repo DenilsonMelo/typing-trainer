@@ -29,8 +29,8 @@ export function Key({ label, charCode, isActive, isNext, isError, sub, w = 44 }:
       shadow: "0 1px 2px #00000022", scale: "scale(1)",
     };
     return {
-      bg: isMod ? "#1e2030" : "#232536", textColor: isMod ? "#3b4261" : "#4a5070",
-      border: "1px solid #2a2d3d", shadow: "0 1px 2px #00000018", scale: "scale(1)",
+      bg: isMod ? "#1e2030" : "#262a3d", textColor: isMod ? "#6a7099" : "#9098bc",
+      border: "1px solid #353a52", shadow: "0 1px 2px #00000022", scale: "scale(1)",
     };
   };
   const { bg, textColor, border, shadow, scale } = getStyle();
@@ -46,7 +46,7 @@ export function Key({ label, charCode, isActive, isNext, isError, sub, w = 44 }:
       transition: "all 0.12s ease", userSelect: "none", flexShrink: 0,
     }}>
       {label}
-      {sub && <span style={{ fontSize: "7px", opacity: 0.4, marginTop: "-2px" }}>{sub}</span>}
+      {sub && <span style={{ fontSize: "10px", opacity: 0.4, marginTop: "-2px" }}>{sub}</span>}
     </div>
   );
 }

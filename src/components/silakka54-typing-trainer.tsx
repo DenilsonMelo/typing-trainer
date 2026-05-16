@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef, useReducer } from "react";
 import { LEVELS, generateText } from "../data/levels";
-import { KEYBOARD_LEFT, KEYBOARD_RIGHT, THUMBS_LEFT, THUMBS_RIGHT } from "../data/keyboard";
+import { LAYERS } from "../data/keyboard";
 import { TIPS } from "../data/tips";
 import { typingReducer, initialState } from "../state/typing-reducer";
 import { KeyboardHalf } from "./keyboard-half";
 
 export default function TypingTrainer() {
   const [currentLevel, setCurrentLevel] = useState(0);
+  const [currentLayer, setCurrentLayer] = useState(0);
   const [state, dispatch] = useReducer(typingReducer, initialState);
   const [showTips, setShowTips] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -24,6 +25,14 @@ export default function TypingTrainer() {
     initLevel();
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [currentLevel, initLevel]);
+
+  // Sync displayed layer with the level's default when level changes.
+  // User can still click layer pills to override afterwards.
+  const [prevLevel, setPrevLevel] = useState(currentLevel);
+  if (prevLevel !== currentLevel) {
+    setPrevLevel(currentLevel);
+    setCurrentLayer(level.layer ?? 0);
+  }
 
   // Timer
   useEffect(() => {
@@ -217,14 +226,39 @@ export default function TypingTrainer() {
         )}
       </div>
 
+      {/* Layer pills */}
+      <div style={{ display: "flex", justifyContent: "center", gap: "4px", marginBottom: "4px", flexWrap: "wrap" }}>
+        {LAYERS.map((l, i) => (
+          <button key={i} onClick={() => setCurrentLayer(i)}
+            style={{
+              padding: "3px 9px", borderRadius: "10px",
+              border: i === currentLayer ? "1px solid #b197fc" : "1px solid transparent",
+              background: i === currentLayer ? "#b197fc18" : "transparent",
+              color: i === currentLayer ? "#b197fc" : "#3b4261",
+              fontSize: "9px", fontWeight: i === currentLayer ? 700 : 500, cursor: "pointer",
+              letterSpacing: "0.5px", transition: "all 0.15s",
+            }}>
+            {l.name} <span style={{ opacity: 0.55, marginLeft: "2px" }}>{l.desc}</span>
+            {l.holdKey && (
+              <span style={{
+                marginLeft: "6px", padding: "1px 5px", borderRadius: "4px",
+                background: i === currentLayer ? "#b197fc22" : "#2a2d3d",
+                color: i === currentLayer ? "#b197fc" : "#5a607a",
+                fontSize: "8px", fontWeight: 600, letterSpacing: "0.3px",
+              }}>hold {l.holdKey}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* Keyboard */}
       <div style={{
         display: "flex", justifyContent: "center", gap: "36px",
         margin: "0 auto", maxWidth: "640px", transform: "scale(0.88)", transformOrigin: "top center",
       }}>
-        <KeyboardHalf rows={KEYBOARD_LEFT} thumbs={THUMBS_LEFT}
+        <KeyboardHalf rows={LAYERS[currentLayer].left} thumbs={LAYERS[currentLayer].thumbsLeft}
           activeChars={activeChars} nextChar={nextChar} errorChar={state.errorFlash} side="left" />
-        <KeyboardHalf rows={KEYBOARD_RIGHT} thumbs={THUMBS_RIGHT}
+        <KeyboardHalf rows={LAYERS[currentLayer].right} thumbs={LAYERS[currentLayer].thumbsRight}
           activeChars={activeChars} nextChar={nextChar} errorChar={state.errorFlash} side="right" />
       </div>
 
