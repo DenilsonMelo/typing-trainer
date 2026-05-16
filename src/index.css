@@ -1,1 +1,68 @@
 body { margin: 0; }
+
+:root {
+  /* Dark theme (default) — current palette */
+  --page-bg: #13141c;
+  --card-bg: #1a1b26;
+  --pill-bg: #1e2030;
+  --pill-border: #2a2d3d;
+  --divider: #3b4261;
+
+  --fg: #a9b1d6;
+  --fg-strong: #c0caf5;
+  --fg-muted: #6a7099;
+  --fg-dim: #4a5070;
+  --fg-ghost: #2f3348;
+
+  --key-bg: #262a3d;
+  --key-fg: #9098bc;
+  --key-border: #353a52;
+  --key-mod-bg: #1e2030;
+  --key-mod-fg: #6a7099;
+
+  --finish-overlay: #13141cee;
+  --tip-bg: #1a1b2677;
+  --tip-border: #1e2030;
+  --tip-divider: #1e203044;
+  --tip-callout-bg: #1e203066;
+
+  --shadow-soft: #00000022;
+  --shadow-strong: #00000066;
+
+  /* Accents — shared between themes */
+  --accent-blue: #7aa2f7;
+  --accent-purple: #b197fc;
+  --accent-green: #69db7c;
+  --accent-red: #ff6b81;
+  --accent-orange: #ffa94d;
+  --accent-cyan: #74c0fc;
+}
+
+:root.light {
+  --page-bg: #f5f5f7;
+  --card-bg: #ffffff;
+  --pill-bg: #ffffff;
+  --pill-border: #e2e4ea;
+  --divider: #d0d3dc;
+
+  --fg: #2e3140;
+  --fg-strong: #181a25;
+  --fg-muted: #6a7089;
+  --fg-dim: #9aa0b3;
+  --fg-ghost: #c8cad4;
+
+  --key-bg: #ffffff;
+  --key-fg: #5a607a;
+  --key-border: #d9dbe3;
+  --key-mod-bg: #f0f1f5;
+  --key-mod-fg: #7a8099;
+
+  --finish-overlay: #f5f5f7ee;
+  --tip-bg: #ffffff99;
+  --tip-border: #e2e4ea;
+  --tip-divider: #e2e4ea88;
+  --tip-callout-bg: #f0f1f5;
+
+  --shadow-soft: #00000010;
+  --shadow-strong: #0000001f;
+}

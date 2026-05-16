@@ -18,24 +18,28 @@ export function Key({ label, charCode, isActive, isNext, isError, isHoldKey, sub
 
   const getStyle = () => {
     if (isError) return {
-      bg: "#ff6b8140", textColor: "#ff6b81", border: "2px solid #ff6b81",
-      shadow: "0 0 14px #ff6b8144", scale: "scale(1.08)",
+      bg: "color-mix(in srgb, var(--accent-red) 35%, transparent)", textColor: "var(--accent-red)",
+      border: "2px solid var(--accent-red)",
+      shadow: "0 0 14px color-mix(in srgb, var(--accent-red) 28%, transparent)", scale: "scale(1.08)",
     };
     if (isNext) return {
       bg: color, textColor: "#13141c", border: `2px solid ${color}`,
-      shadow: `0 0 20px ${color}77, 0 3px 10px #00000066`, scale: "scale(1.13)",
+      shadow: `0 0 20px ${color}77, 0 3px 10px var(--shadow-strong)`, scale: "scale(1.13)",
     };
     if (isHoldKey) return {
-      bg: "#b197fc22", textColor: "#b197fc", border: "2px solid #b197fc",
-      shadow: "0 0 16px #b197fc88, 0 0 4px #b197fcaa inset", scale: "scale(1.06)",
+      bg: "color-mix(in srgb, var(--accent-purple) 18%, transparent)", textColor: "var(--accent-purple)",
+      border: "2px solid var(--accent-purple)",
+      shadow: "0 0 16px color-mix(in srgb, var(--accent-purple) 55%, transparent), 0 0 4px color-mix(in srgb, var(--accent-purple) 65%, transparent) inset",
+      scale: "scale(1.06)",
     };
     if (isActive && !isMod) return {
       bg: `${color}18`, textColor: `${color}cc`, border: `1px solid ${color}33`,
-      shadow: "0 1px 2px #00000022", scale: "scale(1)",
+      shadow: "0 1px 2px var(--shadow-soft)", scale: "scale(1)",
     };
     return {
-      bg: isMod ? "#1e2030" : "#262a3d", textColor: isMod ? "#6a7099" : "#9098bc",
-      border: "1px solid #353a52", shadow: "0 1px 2px #00000022", scale: "scale(1)",
+      bg: isMod ? "var(--key-mod-bg)" : "var(--key-bg)",
+      textColor: isMod ? "var(--key-mod-fg)" : "var(--key-fg)",
+      border: "1px solid var(--key-border)", shadow: "0 1px 2px var(--shadow-soft)", scale: "scale(1)",
     };
   };
   const { bg, textColor, border, shadow, scale } = getStyle();

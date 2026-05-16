@@ -5,14 +5,25 @@ import { TIPS } from "../data/tips";
 import { typingReducer, initialState } from "../state/typing-reducer";
 import { KeyboardHalf } from "./keyboard-half";
 
+type Theme = "dark" | "light";
+
 export default function TypingTrainer() {
   const [currentLevel, setCurrentLevel] = useState(0);
   const [currentLayer, setCurrentLayer] = useState(0);
   const [state, dispatch] = useReducer(typingReducer, initialState);
   const [showTips, setShowTips] = useState(false);
+  const [theme, setTheme] = useState<Theme>(() => {
+    const stored = typeof window !== "undefined" ? window.localStorage.getItem("theme") : null;
+    return stored === "light" || stored === "dark" ? stored : "dark";
+  });
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("light", theme === "light");
+    window.localStorage.setItem("theme", theme);
+  }, [theme]);
 
   const level = LEVELS[currentLevel];
 
@@ -132,19 +143,35 @@ export default function TypingTrainer() {
 
   return (
     <div ref={containerRef} style={{
-      minHeight: "100vh", background: "#13141c", color: "#a9b1d6",
+      minHeight: "100vh", background: "var(--page-bg)", color: "var(--fg)",
       fontFamily: "'Segoe UI', system-ui, sans-serif", padding: "16px", boxSizing: "border-box",
+      transition: "background 0.2s, color 0.2s",
     }}>
+      {/* Theme toggle */}
+      <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        aria-label={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+        style={{
+          position: "fixed", top: "14px", right: "14px", zIndex: 50,
+          display: "inline-flex", alignItems: "center", gap: "6px",
+          background: "var(--pill-bg)", border: "1px solid var(--pill-border)",
+          color: "var(--fg-muted)", padding: "5px 10px", borderRadius: "20px",
+          fontSize: "10px", fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase",
+          cursor: "pointer", transition: "all 0.15s",
+        }}>
+        <span style={{ fontSize: "12px", lineHeight: 1 }}>{theme === "dark" ? "☀" : "☾"}</span>
+        {theme === "dark" ? "Light" : "Dark"}
+      </button>
+
       {/* Title */}
       <div style={{ textAlign: "center", marginBottom: "10px" }}>
         <div style={{
           display: "inline-flex", alignItems: "center", gap: "10px",
-          background: "#1e2030", padding: "7px 18px", borderRadius: "40px", border: "1px solid #2a2d3d",
+          background: "var(--pill-bg)", padding: "7px 18px", borderRadius: "40px", border: "1px solid var(--pill-border)",
         }}>
-          <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "5px", color: "#7aa2f7", textTransform: "uppercase" }}>
+          <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "5px", color: "var(--accent-blue)", textTransform: "uppercase" }}>
             Silakka54
           </span>
-          <span style={{ width: "1px", height: "12px", background: "#3b4261" }} />
+          <span style={{ width: "1px", height: "12px", background: "var(--divider)" }} />
           <span style={{ fontSize: "10px", letterSpacing: "2px", opacity: 0.4 }}>Typing Trainer</span>
         </div>
       </div>
@@ -155,9 +182,9 @@ export default function TypingTrainer() {
           <button key={i} onClick={() => setCurrentLevel(i)}
             style={{
               padding: "4px 10px", borderRadius: "14px",
-              border: i === currentLevel ? "1px solid #7aa2f7" : "1px solid transparent",
-              background: i === currentLevel ? "#7aa2f715" : "transparent",
-              color: i === currentLevel ? "#7aa2f7" : "#4a5070",
+              border: i === currentLevel ? "1px solid var(--accent-blue)" : "1px solid transparent",
+              background: i === currentLevel ? "color-mix(in srgb, var(--accent-blue) 12%, transparent)" : "transparent",
+              color: i === currentLevel ? "var(--accent-blue)" : "var(--fg-dim)",
               fontSize: "10px", fontWeight: i === currentLevel ? 700 : 500, cursor: "pointer",
               transition: "all 0.15s", whiteSpace: "nowrap",
             }}>
@@ -172,11 +199,11 @@ export default function TypingTrainer() {
       {/* Stats */}
       <div style={{ display: "flex", justifyContent: "center", gap: "28px", marginBottom: "12px" }}>
         {([
-          [wpm, "WPM", "#74c0fc"],
-          [`${accuracy}%`, "Precisão", accuracy >= 95 ? "#69db7c" : accuracy >= 80 ? "#ffa94d" : "#ff6b81"],
-          [`${state.elapsed}s`, "Tempo", "#b197fc"],
-          [state.correct, "Certos", "#69db7c"],
-          [state.wrong, "Erros", "#ff6b81"],
+          [wpm, "WPM", "var(--accent-cyan)"],
+          [`${accuracy}%`, "Precisão", accuracy >= 95 ? "var(--accent-green)" : accuracy >= 80 ? "var(--accent-orange)" : "var(--accent-red)"],
+          [`${state.elapsed}s`, "Tempo", "var(--accent-purple)"],
+          [state.correct, "Certos", "var(--accent-green)"],
+          [state.wrong, "Erros", "var(--accent-red)"],
         ] as Array<[string | number, string, string]>).map(([v, l, c]) => (
           <div key={l} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px" }}>
             <span style={{ fontSize: "26px", fontWeight: 800, lineHeight: 1, color: c, fontFamily: "'JetBrains Mono', monospace" }}>{v}</span>
@@ -187,32 +214,32 @@ export default function TypingTrainer() {
 
       {/* Text area */}
       <div ref={textRef} style={{
-        background: "#1a1b26", borderRadius: "12px", padding: "18px 22px",
+        background: "var(--card-bg)", borderRadius: "12px", padding: "18px 22px",
         margin: "0 auto 14px", maxWidth: "660px", minHeight: "160px", maxHeight: "110px",
         overflowY: "auto", fontSize: "19px",
         fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-        lineHeight: 1.85, letterSpacing: "0.3px", border: "1px solid #1e2030", position: "relative",
+        lineHeight: 1.85, letterSpacing: "0.3px", border: "1px solid var(--tip-border)", position: "relative",
       }}>
         {state.finished && (
           <div style={{
-            position: "absolute", inset: 0, background: "#13141cee", borderRadius: "12px",
+            position: "absolute", inset: 0, background: "var(--finish-overlay)", borderRadius: "12px",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             gap: "8px", zIndex: 10,
           }}>
             <div style={{ fontSize: "32px" }}>{accuracy >= 95 ? "🎯" : accuracy >= 80 ? "👍" : "💪"}</div>
-            <div style={{ fontSize: "18px", fontWeight: 700, color: "#c0caf5" }}>{wpm} WPM — {accuracy}%</div>
+            <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--fg-strong)" }}>{wpm} WPM — {accuracy}%</div>
             <div style={{ fontSize: "11px", opacity: 0.4 }}>
               {state.correct} certas, {state.wrong} erros
               {accuracy >= 95 ? " — Excelente!" : accuracy >= 80 ? " — Continue assim!" : " — Foque na precisão."}
             </div>
             <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
               <button onClick={() => initLevel()}
-                style={{ padding: "6px 16px", borderRadius: "7px", border: "1px solid #7aa2f7", background: "#7aa2f712", color: "#7aa2f7", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>
+                style={{ padding: "6px 16px", borderRadius: "7px", border: "1px solid var(--accent-blue)", background: "color-mix(in srgb, var(--accent-blue) 10%, transparent)", color: "var(--accent-blue)", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>
                 Repetir (Esc)
               </button>
               {currentLevel < LEVELS.length - 1 && (
                 <button autoFocus onClick={() => setCurrentLevel(p => p + 1)}
-                  style={{ padding: "6px 16px", borderRadius: "7px", border: "none", background: "#7aa2f7", color: "#13141c", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}>
+                  style={{ padding: "6px 16px", borderRadius: "7px", border: "none", background: "var(--accent-blue)", color: "#13141c", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}>
                   Próximo (Enter) →
                 </button>
               )}
@@ -223,10 +250,10 @@ export default function TypingTrainer() {
         {state.text.split("").map((char, i) => {
           const st = state.states[i];
           const isCursor = i === state.pos;
-          let color = "#2f3348", bg = "transparent", bb = "none";
-          if (st === "correct") color = "#69db7c";
-          else if (st === "wrong") { color = "#ff6b81"; bg = "#ff6b8115"; }
-          if (isCursor) { color = "#ddd"; bb = "2px solid #7aa2f7"; bg = "#7aa2f70d"; }
+          let color = "var(--fg-ghost)", bg = "transparent", bb = "none";
+          if (st === "correct") color = "var(--accent-green)";
+          else if (st === "wrong") { color = "var(--accent-red)"; bg = "color-mix(in srgb, var(--accent-red) 12%, transparent)"; }
+          if (isCursor) { color = "var(--fg-strong)"; bb = "2px solid var(--accent-blue)"; bg = "color-mix(in srgb, var(--accent-blue) 8%, transparent)"; }
 
           return (
             <span key={i} data-cursor={isCursor ? "true" : undefined}
@@ -249,9 +276,9 @@ export default function TypingTrainer() {
           <button key={i} onClick={() => setCurrentLayer(i)}
             style={{
               padding: "3px 9px", borderRadius: "10px",
-              border: i === currentLayer ? "1px solid #b197fc" : "1px solid transparent",
-              background: i === currentLayer ? "#b197fc18" : "transparent",
-              color: i === currentLayer ? "#b197fc" : "#3b4261",
+              border: i === currentLayer ? "1px solid var(--accent-purple)" : "1px solid transparent",
+              background: i === currentLayer ? "color-mix(in srgb, var(--accent-purple) 14%, transparent)" : "transparent",
+              color: i === currentLayer ? "var(--accent-purple)" : "var(--fg-dim)",
               fontSize: "9px", fontWeight: i === currentLayer ? 700 : 500, cursor: "pointer",
               letterSpacing: "0.5px", transition: "all 0.15s",
             }}>
@@ -259,8 +286,8 @@ export default function TypingTrainer() {
             {l.holdKey && (
               <span style={{
                 marginLeft: "6px", padding: "1px 5px", borderRadius: "4px",
-                background: i === currentLayer ? "#b197fc22" : "#2a2d3d",
-                color: i === currentLayer ? "#b197fc" : "#5a607a",
+                background: i === currentLayer ? "color-mix(in srgb, var(--accent-purple) 18%, transparent)" : "var(--pill-border)",
+                color: i === currentLayer ? "var(--accent-purple)" : "var(--fg-muted)",
                 fontSize: "8px", fontWeight: 600, letterSpacing: "0.3px",
               }}>hold {l.holdKey}</span>
             )}
@@ -283,7 +310,7 @@ export default function TypingTrainer() {
 
       {/* Finger legend */}
       <div style={{ display: "flex", justifyContent: "center", gap: "12px", flexWrap: "wrap", margin: "10px 0 6px" }}>
-        {[["Mindinho", "#ff6b81"], ["Anelar", "#ffa94d"], ["Médio", "#69db7c"], ["Indicador", "#74c0fc"], ["Polegar", "#b197fc"]].map(([n, c]) => (
+        {[["Mindinho", "var(--accent-red)"], ["Anelar", "var(--accent-orange)"], ["Médio", "var(--accent-green)"], ["Indicador", "var(--accent-cyan)"], ["Polegar", "var(--accent-purple)"]].map(([n, c]) => (
           <div key={n} style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "9px", opacity: 0.5 }}>
             <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: c }} /> {n}
           </div>
@@ -293,20 +320,20 @@ export default function TypingTrainer() {
       {/* Tips */}
       <div style={{ maxWidth: "540px", margin: "8px auto 0" }}>
         <button onClick={() => setShowTips(!showTips)}
-          style={{ background: "none", border: "none", color: "#7aa2f7", fontSize: "10px", cursor: "pointer", opacity: 0.45, padding: "3px 0" }}>
+          style={{ background: "none", border: "none", color: "var(--accent-blue)", fontSize: "10px", cursor: "pointer", opacity: 0.55, padding: "3px 0" }}>
           {showTips ? "▾" : "▸"} Dicas para seu layout
         </button>
         {showTips && (
-          <div style={{ background: "#1a1b2677", borderRadius: "10px", padding: "10px 14px", marginTop: "4px", border: "1px solid #1e2030" }}>
+          <div style={{ background: "var(--tip-bg)", borderRadius: "10px", padding: "10px 14px", marginTop: "4px", border: "1px solid var(--tip-border)" }}>
             {TIPS.map((tip, i) => (
-              <div key={i} style={{ padding: "4px 0", fontSize: "10px", opacity: 0.5, borderBottom: i < TIPS.length - 1 ? "1px solid #1e203044" : "none", lineHeight: 1.5 }}>
-                <span style={{ color: "#7aa2f7", marginRight: "6px", fontWeight: 700, fontFamily: "monospace", fontSize: "9px" }}>
+              <div key={i} style={{ padding: "4px 0", fontSize: "10px", opacity: 0.6, borderBottom: i < TIPS.length - 1 ? "1px solid var(--tip-divider)" : "none", lineHeight: 1.5 }}>
+                <span style={{ color: "var(--accent-blue)", marginRight: "6px", fontWeight: 700, fontFamily: "monospace", fontSize: "9px" }}>
                   {String(i + 1).padStart(2, "0")}
                 </span>{tip}
               </div>
             ))}
-            <div style={{ marginTop: "8px", padding: "8px 10px", borderRadius: "7px", background: "#1e203066", fontSize: "9px", opacity: 0.55, lineHeight: 1.7 }}>
-              <strong style={{ color: "#7aa2f7" }}>Suas camadas (VIAL):</strong><br />
+            <div style={{ marginTop: "8px", padding: "8px 10px", borderRadius: "7px", background: "var(--tip-callout-bg)", fontSize: "9px", opacity: 0.65, lineHeight: 1.7 }}>
+              <strong style={{ color: "var(--accent-blue)" }}>Suas camadas (VIAL):</strong><br />
               L0 = QWERTY &nbsp;|&nbsp; L1 (Tab hold) = Símbolos !@#$%<br />
               L2 (Space hold) = Navegação/Setas &nbsp;|&nbsp; L3 (Enter hold) = Numpad<br />
               L4 (Bksp hold) = F-keys + Controle de Mídia
