@@ -1,5 +1,7 @@
 import type { CellState } from "../types";
 
+export type BestScore = { wpm: number; accuracy: number };
+
 export type State = {
   text: string;
   pos: number;
@@ -10,14 +12,15 @@ export type State = {
   finished: boolean;
   elapsed: number;
   errorFlash: string | null;
-  bestWpm: Record<number, number>;
+  bestScores: Record<number, BestScore>;
+  lastWasRecord: boolean;
   lastCorrect?: boolean;
   lastExpected?: string | null;
 };
 
 export type Action =
   | { type: "INIT"; text: string }
-  | { type: "TYPE_CHAR"; char: string; time: number; currentLevel: number }
+  | { type: "TYPE_CHAR"; char: string; time: number; levelId: number }
   | { type: "BACKSPACE" }
   | { type: "TICK"; now: number }
   | { type: "CLEAR_ERROR_FLASH" };
@@ -25,7 +28,7 @@ export type Action =
 export const initialState: State = {
   text: "", pos: 0, states: [], correct: 0, wrong: 0,
   startTime: null, finished: false,
-  elapsed: 0, errorFlash: null, bestWpm: {},
+  elapsed: 0, errorFlash: null, bestScores: {}, lastWasRecord: false,
 };
 
 export function typingReducer(state: State, action: Action): State {
@@ -36,7 +39,7 @@ export function typingReducer(state: State, action: Action): State {
         ...state,
         text: t, pos: 0, states: new Array(t.length).fill(null),
         correct: 0, wrong: 0, startTime: null, finished: false,
-        elapsed: 0, errorFlash: null,
+        elapsed: 0, errorFlash: null, lastWasRecord: false,
       };
     }
     case "TYPE_CHAR": {
@@ -50,26 +53,36 @@ export function typingReducer(state: State, action: Action): State {
       const startTime = state.startTime || now;
       const finished = newPos >= state.text.length;
       const newCorrect = state.correct + (isCorrect ? 1 : 0);
+      const newWrong = state.wrong + (isCorrect ? 0 : 1);
       let elapsed = state.elapsed;
-      let bestWpm = state.bestWpm;
+      let bestScores = state.bestScores;
+      let lastWasRecord = state.lastWasRecord;
       if (finished) {
         elapsed = Math.max(1, Math.floor((now - startTime) / 1000));
         const fw = elapsed > 0 ? Math.round((newCorrect / 5) / (elapsed / 60)) : 0;
-        bestWpm = { ...state.bestWpm, [action.currentLevel]: Math.max(state.bestWpm[action.currentLevel] || 0, fw) };
+        const totalKeys = newCorrect + newWrong;
+        const accuracy = totalKeys > 0 ? Math.round((newCorrect / totalKeys) * 100) : 100;
+        const prev = state.bestScores[action.levelId];
+        const isRecord = accuracy >= 90 && fw > (prev?.wpm ?? 0);
+        if (isRecord) {
+          bestScores = { ...state.bestScores, [action.levelId]: { wpm: fw, accuracy } };
+        }
+        lastWasRecord = isRecord;
       }
       return {
         ...state,
         pos: newPos,
         states: newStates,
         correct: newCorrect,
-        wrong: state.wrong + (isCorrect ? 0 : 1),
+        wrong: newWrong,
         startTime,
         finished,
         lastCorrect: isCorrect,
         lastExpected: isCorrect ? null : expected,
         errorFlash: isCorrect ? null : expected,
         elapsed,
-        bestWpm,
+        bestScores,
+        lastWasRecord,
       };
     }
     case "BACKSPACE": {

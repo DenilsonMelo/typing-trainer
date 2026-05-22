@@ -3,6 +3,7 @@ import { LEVELS, generateText } from "../data/levels";
 import { LAYERS } from "../data/keyboard";
 import { TIPS } from "../data/tips";
 import { typingReducer, initialState } from "../state/typing-reducer";
+import { loadBestScores, saveBestScores } from "../state/best-scores-storage";
 import { KeyboardHalf } from "./keyboard-half";
 
 type Theme = "dark" | "light";
@@ -10,7 +11,11 @@ type Theme = "dark" | "light";
 export default function TypingTrainer() {
   const [currentLevel, setCurrentLevel] = useState(0);
   const [currentLayer, setCurrentLayer] = useState(0);
-  const [state, dispatch] = useReducer(typingReducer, initialState);
+  const [state, dispatch] = useReducer(
+    typingReducer,
+    undefined,
+    () => ({ ...initialState, bestScores: loadBestScores() })
+  );
   const [showTips, setShowTips] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem("theme") : null;
@@ -24,6 +29,10 @@ export default function TypingTrainer() {
     document.documentElement.classList.toggle("light", theme === "light");
     window.localStorage.setItem("theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    saveBestScores(state.bestScores);
+  }, [state.bestScores]);
 
   const level = LEVELS[currentLevel];
 
@@ -104,12 +113,12 @@ export default function TypingTrainer() {
       // Only single characters
       if (e.key.length !== 1) return;
 
-      dispatch({ type: "TYPE_CHAR", char: e.key, time: Date.now(), currentLevel });
+      dispatch({ type: "TYPE_CHAR", char: e.key, time: Date.now(), levelId: level.id });
     };
 
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [state.finished, initLevel, currentLevel]);
+  }, [state.finished, initLevel, currentLevel, level.id]);
 
   // Error flash — clear after 300ms
   useEffect(() => {
@@ -189,7 +198,7 @@ export default function TypingTrainer() {
               transition: "all 0.15s", whiteSpace: "nowrap",
             }}>
             {i + 1}. {l.name}
-            {state.bestWpm[i] != null && <span style={{ opacity: 0.4, marginLeft: "3px" }}>{state.bestWpm[i]}w</span>}
+            {state.bestScores[l.id] != null && <span style={{ opacity: 0.4, marginLeft: "3px" }}>{state.bestScores[l.id].wpm}w</span>}
           </button>
         ))}
       </div>
@@ -232,6 +241,31 @@ export default function TypingTrainer() {
               {state.correct} certas, {state.wrong} erros
               {accuracy >= 95 ? " — Excelente!" : accuracy >= 80 ? " — Continue assim!" : " — Foque na precisão."}
             </div>
+            {(() => {
+              const best = state.bestScores[level.id];
+              if (state.lastWasRecord) {
+                return (
+                  <div style={{ fontSize: "11px", color: "var(--accent-green)", fontWeight: 600 }}>
+                    🏆 Novo recorde!
+                  </div>
+                );
+              }
+              if (accuracy < 90) {
+                return (
+                  <div style={{ fontSize: "10px", opacity: 0.4 }}>
+                    Best não atualizado (precisão &lt; 90%)
+                  </div>
+                );
+              }
+              if (best) {
+                return (
+                  <div style={{ fontSize: "10px", opacity: 0.4 }}>
+                    Melhor: {best.wpm}w · {best.accuracy}%
+                  </div>
+                );
+              }
+              return null;
+            })()}
             <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
               <button onClick={() => initLevel()}
                 style={{ padding: "6px 16px", borderRadius: "7px", border: "1px solid var(--accent-blue)", background: "color-mix(in srgb, var(--accent-blue) 10%, transparent)", color: "var(--accent-blue)", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>
