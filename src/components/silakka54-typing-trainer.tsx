@@ -127,9 +127,9 @@ export default function TypingTrainer() {
     return () => clearTimeout(t);
   }, [state.errorFlash]);
 
-  const totalKeys = state.correct + state.wrong;
-  const wpm = state.elapsed > 0 ? Math.round((state.correct / 5) / (state.elapsed / 60)) : 0;
-  const accuracy = totalKeys > 0 ? Math.round((state.correct / totalKeys) * 100) : 100;
+  const netCorrect = state.totalKeystrokes - state.totalErrors;
+  const wpm = state.elapsed > 0 ? Math.round((netCorrect / 5) / (state.elapsed / 60)) : 0;
+  const accuracy = state.totalKeystrokes > 0 ? Math.round((netCorrect / state.totalKeystrokes) * 100) : 100;
   const nextChar = state.text[state.pos] || "";
   const activeChars = new Set(state.text.split(""));
 
@@ -211,8 +211,8 @@ export default function TypingTrainer() {
           [wpm, "WPM", "var(--accent-cyan)"],
           [`${accuracy}%`, "Precisão", accuracy >= 95 ? "var(--accent-green)" : accuracy >= 80 ? "var(--accent-orange)" : "var(--accent-red)"],
           [`${state.elapsed}s`, "Tempo", "var(--accent-purple)"],
-          [state.correct, "Certos", "var(--accent-green)"],
-          [state.wrong, "Erros", "var(--accent-red)"],
+          [netCorrect, "Certos", "var(--accent-green)"],
+          [state.totalErrors, "Erros", "var(--accent-red)"],
         ] as Array<[string | number, string, string]>).map(([v, l, c]) => (
           <div key={l} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px" }}>
             <span style={{ fontSize: "26px", fontWeight: 800, lineHeight: 1, color: c, fontFamily: "'JetBrains Mono', monospace" }}>{v}</span>
@@ -224,7 +224,7 @@ export default function TypingTrainer() {
       {/* Text area */}
       <div ref={textRef} style={{
         background: "var(--card-bg)", borderRadius: "12px", padding: "18px 22px",
-        margin: "0 auto 14px", maxWidth: "660px", minHeight: "160px", maxHeight: "110px",
+        margin: "0 auto 14px", maxWidth: "660px", minHeight: "180px", maxHeight: "110px",
         overflowY: "auto", fontSize: "19px",
         fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
         lineHeight: 1.85, letterSpacing: "0.3px", border: "1px solid var(--tip-border)", position: "relative",
@@ -238,7 +238,7 @@ export default function TypingTrainer() {
             <div style={{ fontSize: "32px" }}>{accuracy >= 95 ? "🎯" : accuracy >= 80 ? "👍" : "💪"}</div>
             <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--fg-strong)" }}>{wpm} WPM — {accuracy}%</div>
             <div style={{ fontSize: "11px", opacity: 0.4 }}>
-              {state.correct} certas, {state.wrong} erros
+              {netCorrect} certas, {state.totalErrors} erros
               {accuracy >= 95 ? " — Excelente!" : accuracy >= 80 ? " — Continue assim!" : " — Foque na precisão."}
             </div>
             {(() => {

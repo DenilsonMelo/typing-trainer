@@ -6,8 +6,8 @@ export type State = {
   text: string;
   pos: number;
   states: CellState[];
-  correct: number;
-  wrong: number;
+  totalKeystrokes: number;
+  totalErrors: number;
   startTime: number | null;
   finished: boolean;
   elapsed: number;
@@ -26,7 +26,7 @@ export type Action =
   | { type: "CLEAR_ERROR_FLASH" };
 
 export const initialState: State = {
-  text: "", pos: 0, states: [], correct: 0, wrong: 0,
+  text: "", pos: 0, states: [], totalKeystrokes: 0, totalErrors: 0,
   startTime: null, finished: false,
   elapsed: 0, errorFlash: null, bestScores: {}, lastWasRecord: false,
 };
@@ -38,7 +38,7 @@ export function typingReducer(state: State, action: Action): State {
       return {
         ...state,
         text: t, pos: 0, states: new Array(t.length).fill(null),
-        correct: 0, wrong: 0, startTime: null, finished: false,
+        totalKeystrokes: 0, totalErrors: 0, startTime: null, finished: false,
         elapsed: 0, errorFlash: null, lastWasRecord: false,
       };
     }
@@ -52,16 +52,16 @@ export function typingReducer(state: State, action: Action): State {
       const now = action.time;
       const startTime = state.startTime || now;
       const finished = newPos >= state.text.length;
-      const newCorrect = state.correct + (isCorrect ? 1 : 0);
-      const newWrong = state.wrong + (isCorrect ? 0 : 1);
+      const newTotalKeystrokes = state.totalKeystrokes + 1;
+      const newTotalErrors = state.totalErrors + (isCorrect ? 0 : 1);
       let elapsed = state.elapsed;
       let bestScores = state.bestScores;
       let lastWasRecord = state.lastWasRecord;
       if (finished) {
         elapsed = Math.max(1, Math.floor((now - startTime) / 1000));
-        const fw = elapsed > 0 ? Math.round((newCorrect / 5) / (elapsed / 60)) : 0;
-        const totalKeys = newCorrect + newWrong;
-        const accuracy = totalKeys > 0 ? Math.round((newCorrect / totalKeys) * 100) : 100;
+        const netCorrect = newTotalKeystrokes - newTotalErrors;
+        const fw = elapsed > 0 ? Math.round((netCorrect / 5) / (elapsed / 60)) : 0;
+        const accuracy = newTotalKeystrokes > 0 ? Math.round((netCorrect / newTotalKeystrokes) * 100) : 100;
         const prev = state.bestScores[action.levelId];
         const isRecord = accuracy >= 90 && fw > (prev?.wpm ?? 0);
         if (isRecord) {
@@ -73,8 +73,8 @@ export function typingReducer(state: State, action: Action): State {
         ...state,
         pos: newPos,
         states: newStates,
-        correct: newCorrect,
-        wrong: newWrong,
+        totalKeystrokes: newTotalKeystrokes,
+        totalErrors: newTotalErrors,
         startTime,
         finished,
         lastCorrect: isCorrect,
@@ -88,15 +88,12 @@ export function typingReducer(state: State, action: Action): State {
     case "BACKSPACE": {
       if (state.finished || state.pos <= 0) return state;
       const prev = state.pos - 1;
-      const prevWas = state.states[prev];
       const newStates = [...state.states];
       newStates[prev] = null;
       return {
         ...state,
         pos: prev,
         states: newStates,
-        correct: state.correct - (prevWas === "correct" ? 1 : 0),
-        wrong: state.wrong - (prevWas === "wrong" ? 1 : 0),
         lastExpected: null,
         errorFlash: null,
       };
